@@ -34,7 +34,8 @@ Usage
 
 Changing default options
 ------------------------
-- Copy the example `config.sh` file to your config folder (default location: `~/.chromecastize`).
+- Copy the example `config.example` file to your config folder (default location: `~/.chromecastize`).
+- Rename it to `config`.
 - Uncomment the options which you wish to change by removing the leading `#` symbol.
 
 Authors
