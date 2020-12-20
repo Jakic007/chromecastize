@@ -18,6 +18,9 @@ UNSUPPORTED_VFPROFILE=('High 10@L5')
 SUPPORTED_ACODECS=('AAC' 'MPEG Audio' 'Vorbis' 'Ogg' 'Opus')
 UNSUPPORTED_ACODECS=('AC-3' 'DTS' 'E-AC-3' 'PCM' 'TrueHD' 'FLAC')
 
+SUPPORTED_SUB=('UTF-8')
+UNSUPPORTED_SUB=('ASS')
+
 ONSUCCESS=bak
 
 DEFAULT_VCODEC=h264
@@ -25,6 +28,8 @@ DEFAULT_VCODEC=h264
 DEFAULT_VCODEC_OPTS="-preset fast -profile:v high -level 4.1 -crf 17 -pix_fmt yuv420p"
 DEFAULT_ACODEC=libvorbis
 DEFAULT_ACODEC_OPTS=""
+DEFAULT_SUB=srt
+DEFAULT_SUB_OPTS=""
 DEFAULT_GFORMAT=mkv
 
 #############
@@ -100,6 +105,17 @@ is_supported_acodec() {
 	elif in_array "$1" "${SUPPORTED_ACODECS[@]}"; then
 		return 0
 	elif in_array "$1" "${UNSUPPORTED_ACODECS[@]}"; then
+		return 1
+	else
+		unknown_codec "$1"
+		exit 1
+	fi
+}
+
+is_supported_sub() {
+	if in_array "$1" "${SUPPORTED_SUB[@]}"; then
+		return 0
+	elif in_array "$1" "${UNSUPPORTED_SUB[@]}"; then
 		return 1
 	else
 		unknown_codec "$1"
@@ -189,6 +205,16 @@ process_file() {
 		ENCODER_OPTIONS=$DEFAULT_VCODEC_OPTS
 	fi
 	echo "- video: $INPUT_VCODEC -> $OUTPUT_VCODEC"
+    
+	# test subtitle format
+	INPUT_SUB=`$MEDIAINFO --Inform="Text;%Format%\n" "$FILENAME" 2> /dev/null | head -n1`
+	if is_supported_sub "$INPUT_SUB"; then
+		OUTPUT_SUB="copy"
+	else
+		OUTPUT_SUB="$DEFAULT_SUB"
+		ENCODER_OPTIONS="$ENCODER_OPTIONS $DEFAULT_SUB_OPTS"
+	fi
+	echo "- text: $INPUT_SUB -> $OUTPUT_SUB"
 
 	# test audio codec
 	INPUT_ACODEC=`$MEDIAINFO --Inform="Audio;%Format%\n" "$FILENAME" 2> /dev/null | head -n1`
@@ -219,7 +245,7 @@ process_file() {
 		# Make sure the encoder options are not escaped with quotes.
 		IFS=' ' read -r -a ENCODER_OPTIONS_ARRAY <<< "$ENCODER_OPTIONS"
 
-		$FFMPEG -loglevel error -stats -i "$FILENAME" -map 0 -scodec copy -vcodec "$OUTPUT_VCODEC" -acodec "$OUTPUT_ACODEC" ${ENCODER_OPTIONS_ARRAY[@]} "$FILENAME.$OUTPUT_GFORMAT" && on_success "$FILENAME" "$DESTINATION_FILENAME" || on_failure "$FILENAME"
+		$FFMPEG -loglevel error -stats -i "$FILENAME" -map 0 -scodec "$OUTPUT_SUB" -vcodec "$OUTPUT_VCODEC" -acodec "$OUTPUT_ACODEC" ${ENCODER_OPTIONS_ARRAY[@]} "$FILENAME.$OUTPUT_GFORMAT" && on_success "$FILENAME" "$DESTINATION_FILENAME" || on_failure "$FILENAME"
 		echo ""
 	fi
 }
