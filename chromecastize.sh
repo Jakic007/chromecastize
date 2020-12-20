@@ -18,7 +18,7 @@ UNSUPPORTED_VFPROFILE=('High 10@L5')
 SUPPORTED_ACODECS=('AAC' 'MPEG Audio' 'Vorbis' 'Ogg' 'Opus')
 UNSUPPORTED_ACODECS=('AC-3' 'DTS' 'E-AC-3' 'PCM' 'TrueHD' 'FLAC')
 
-SUPPORTED_SUB=('UTF-8')
+SUPPORTED_SUB=('' 'UTF-8')
 UNSUPPORTED_SUB=('ASS')
 
 ONSUCCESS=bak
@@ -230,7 +230,7 @@ process_file() {
 	fi
 	echo "- audio: $INPUT_ACODEC -> $OUTPUT_ACODEC"
 
-	if [ "$OUTPUT_VCODEC" = "copy" ] && [ "$OUTPUT_ACODEC" = "copy" ] && [ "$OUTPUT_GFORMAT" = "ok" ]; then
+	if [ "$OUTPUT_VCODEC" = "copy" ] && [ "$OUTPUT_ACODEC" = "copy" ] && [ "$OUTPUT_SUB" = "copy" ] && [ "$OUTPUT_GFORMAT" = "ok" ]; then
 		echo "- file should be playable by Chromecast!"
 		mark_as_good "$FILENAME"
 	else
