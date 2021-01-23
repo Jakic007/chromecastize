@@ -119,6 +119,7 @@
 #SUPPORTED_GFORMATS=('MPEG-4' 'Matroska' 'WebM')
 #DEFAULT_GFORMAT=mkv
 #SUPPORTED_VCODECS=('AVC' 'VP8')
+#SUPPORTED_VFPROFILE=('High@L3.1' 'High@L4' 'High@L4.1')
 #DEFAULT_VCODEC=h264
 #DEFAULT_VCODEC_OPTS="-preset fast -profile:v high -level 4.1 -crf 17 -pix_fmt yuv420p"
 #SUPPORTED_ACODECS=('AAC' 'MPEG Audio' 'Vorbis' 'Ogg' 'Opus')
@@ -128,6 +129,7 @@
 #SUPPORTED_GFORMATS=('MPEG-4' 'Matroska' 'WebM')
 #DEFAULT_GFORMAT=mkv
 #SUPPORTED_VCODECS=('AVC' 'VP8')
+#SUPPORTED_VFPROFILE=('High@L3.1' 'High@L4' 'High@L4.1' 'High@L4.2')
 #DEFAULT_VCODEC=h264
 #DEFAULT_VCODEC_OPTS="-preset fast -profile:v high -level 4.2 -crf 17 -pix_fmt yuv420p"
 #SUPPORTED_ACODECS=('AAC' 'MPEG Audio' 'Vorbis' 'Ogg' 'Opus')
@@ -137,6 +139,7 @@
 #SUPPORTED_GFORMATS=('MPEG-4' 'Matroska' 'WebM')
 #DEFAULT_GFORMAT=mkv
 #SUPPORTED_VCODECS=('AVC' 'HEVC' 'VP8' 'VP9')
+#SUPPORTED_VFPROFILE=('High@L3.1' 'High@L4' 'High@L4.1' 'High@L4.2')
 #UNSUPPORTED_VCODECS=('MPEG-4 Visual' 'xvid' 'MPEG Video')
 #DEFAULT_VCODEC=libx265
 #DEFAULT_VCODEC_OPTS="-preset fast -level 5.2 -crf 17"

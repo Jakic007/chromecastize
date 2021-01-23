@@ -12,8 +12,14 @@ UNSUPPORTED_GFORMATS=('BDAV' 'AVI' 'Flash Video' 'DivX')
 SUPPORTED_VCODECS=('AVC' 'VP8')
 UNSUPPORTED_VCODECS=('MPEG-4 Visual' 'xvid' 'MPEG Video' 'HEVC')
 
+SUPPORTED_VFPROFILE=('Main@L4' 'High@L3.1' 'High@L4' 'High@L4.1')
+UNSUPPORTED_VFPROFILE=('High 10@L5')
+
 SUPPORTED_ACODECS=('AAC' 'MPEG Audio' 'Vorbis' 'Ogg' 'Opus')
 UNSUPPORTED_ACODECS=('AC-3' 'DTS' 'E-AC-3' 'PCM' 'TrueHD' 'FLAC')
+
+SUPPORTED_SUB=('' 'UTF-8')
+UNSUPPORTED_SUB=('ASS' 'PGS')
 
 ONSUCCESS=bak
 
@@ -22,6 +28,8 @@ DEFAULT_VCODEC=h264
 DEFAULT_VCODEC_OPTS="-preset fast -profile:v high -level 4.1 -crf 17 -pix_fmt yuv420p"
 DEFAULT_ACODEC=libvorbis
 DEFAULT_ACODEC_OPTS=""
+DEFAULT_SUB=srt
+DEFAULT_SUB_OPTS=""
 DEFAULT_GFORMAT=mkv
 
 #############
@@ -44,7 +52,7 @@ in_array() {
 }
 
 print_help() {
-	echo "Usage: chromecastize.sh [--mp4 | --mkv | --stereo | --force-vencode | --force-aencode | --config=/path/to/config/] <videofile1> [videofile2 ...]"
+	echo "Usage: chromecastize.sh [--mp4 | --mkv | --stereo | --force-vencode | --force-aencode | --copy-subs | --config=/path/to/config/] <videofile1> [videofile2 ...]"
 }
 
 unknown_codec() {
@@ -78,6 +86,17 @@ is_supported_vcodec() {
 	fi
 }
 
+is_supported_vfprofile() {
+	if in_array "$1" "${SUPPORTED_VFPROFILE[@]}"; then
+		return 0
+	elif in_array "$1" "${UNSUPPORTED_VFPROFILE[@]}"; then
+		return 1
+	else
+		unknown_codec "$1"
+		exit 1
+	fi
+}
+
 is_supported_acodec() {
 	# Support for multichannel AAC audio has been removed in firmware 1.28.
 	# Ref. https://issuetracker.google.com/issues/69112577#comment4
@@ -86,6 +105,17 @@ is_supported_acodec() {
 	elif in_array "$1" "${SUPPORTED_ACODECS[@]}"; then
 		return 0
 	elif in_array "$1" "${UNSUPPORTED_ACODECS[@]}"; then
+		return 1
+	else
+		unknown_codec "$1"
+		exit 1
+	fi
+}
+
+is_supported_sub() {
+	if in_array "$1" "${SUPPORTED_SUB[@]}"; then
+		return 0
+	elif in_array "$1" "${UNSUPPORTED_SUB[@]}"; then
 		return 1
 	else
 		unknown_codec "$1"
@@ -168,13 +198,23 @@ process_file() {
 
 	INPUT_VCODEC=`$MEDIAINFO --Inform="Video;%Format%\n" "$FILENAME" 2> /dev/null | head -n1`
 	ENCODER_OPTIONS=""
-	if is_supported_vcodec "$INPUT_VCODEC" && [ -z "$FORCE_VENCODE" ]; then
+	if is_supported_vcodec "$INPUT_VCODEC" && is_supported_vfprofile "$INPUT_VCODEC_PROFILE" [ -z "$FORCE_VENCODE" ]; then
 		OUTPUT_VCODEC="copy"
 	else
 		OUTPUT_VCODEC="$DEFAULT_VCODEC"
 		ENCODER_OPTIONS=$DEFAULT_VCODEC_OPTS
 	fi
 	echo "- video: $INPUT_VCODEC -> $OUTPUT_VCODEC"
+    
+	# test subtitle format
+	INPUT_SUB=`$MEDIAINFO --Inform="Text;%Format%\n" "$FILENAME" 2> /dev/null | head -n1`
+	if [ ! -z "$KEEP_SUB" ] || is_supported_sub "$INPUT_SUB"; then
+		OUTPUT_SUB="copy"
+	else
+		OUTPUT_SUB="$DEFAULT_SUB"
+		ENCODER_OPTIONS="$ENCODER_OPTIONS $DEFAULT_SUB_OPTS"
+	fi
+	echo "- text: $INPUT_SUB -> $OUTPUT_SUB"
 
 	# test audio codec
 	INPUT_ACODEC=`$MEDIAINFO --Inform="Audio;%Format%\n" "$FILENAME" 2> /dev/null | head -n1`
@@ -190,7 +230,7 @@ process_file() {
 	fi
 	echo "- audio: $INPUT_ACODEC -> $OUTPUT_ACODEC"
 
-	if [ "$OUTPUT_VCODEC" = "copy" ] && [ "$OUTPUT_ACODEC" = "copy" ] && [ "$OUTPUT_GFORMAT" = "ok" ]; then
+	if [ "$OUTPUT_VCODEC" = "copy" ] && [ "$OUTPUT_ACODEC" = "copy" ] && [ "$OUTPUT_SUB" = "copy" ] && [ "$OUTPUT_GFORMAT" = "ok" ]; then
 		echo "- file should be playable by Chromecast!"
 		mark_as_good "$FILENAME"
 	else
@@ -205,7 +245,7 @@ process_file() {
 		# Make sure the encoder options are not escaped with quotes.
 		IFS=' ' read -r -a ENCODER_OPTIONS_ARRAY <<< "$ENCODER_OPTIONS"
 
-		$FFMPEG -loglevel error -stats -i "$FILENAME" -map 0 -scodec copy -vcodec "$OUTPUT_VCODEC" -acodec "$OUTPUT_ACODEC" ${ENCODER_OPTIONS_ARRAY[@]} "$FILENAME.$OUTPUT_GFORMAT" && on_success "$FILENAME" "$DESTINATION_FILENAME" || on_failure "$FILENAME"
+		$FFMPEG -loglevel error -stats -i "$FILENAME" -map 0 -scodec "$OUTPUT_SUB" -vcodec "$OUTPUT_VCODEC" -acodec "$OUTPUT_ACODEC" ${ENCODER_OPTIONS_ARRAY[@]} "$FILENAME.$OUTPUT_GFORMAT" && on_success "$FILENAME" "$DESTINATION_FILENAME" || on_failure "$FILENAME"
 		echo ""
 	fi
 }
@@ -263,6 +303,9 @@ while :; do
 		--stereo)
 			STEREO=1
 			;;
+		--copy-subs)
+			KEEP_SUB=1
+			;;
 		--config=?*)
 			CONFIG_DIRECTORY=${1#*=}
 			;;
@@ -315,8 +358,8 @@ if ! [ -w "$CONFIG_DIRECTORY" ]; then
 fi
 
 # Load default configuration if it exists.
-if [ -f "$CONFIG_DIRECTORY/config.sh" ]; then
-  . "$CONFIG_DIRECTORY/config.sh"
+if [ -f "$CONFIG_DIRECTORY/config" ]; then
+  . "$CONFIG_DIRECTORY/config"
 fi
 
 # Ensure that the processed file list exists and is writeable.
