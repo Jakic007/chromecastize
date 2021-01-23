@@ -30,6 +30,7 @@ Usage
 - `--delete-on-success` deletes the original file on success instead of renaming it to `<original_filename>.bak`
 - `--force-vencode` forces re-encoding of the video, if the codec is supported but the profile level is too high
 - `--force-aencode` forces re-encoding of the audio
+- `--copy-subs` forces keeping original subtitle format for all files
 - `--config=/path/to/config` specify where to store configuration. When omitted the default folder `~/.chromecastize` is used.
 
 Changing default options

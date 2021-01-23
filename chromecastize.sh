@@ -52,7 +52,7 @@ in_array() {
 }
 
 print_help() {
-	echo "Usage: chromecastize.sh [--mp4 | --mkv | --stereo | --force-vencode | --force-aencode | --config=/path/to/config/] <videofile1> [videofile2 ...]"
+	echo "Usage: chromecastize.sh [--mp4 | --mkv | --stereo | --force-vencode | --force-aencode | --copy-subs | --config=/path/to/config/] <videofile1> [videofile2 ...]"
 }
 
 unknown_codec() {
@@ -208,7 +208,7 @@ process_file() {
     
 	# test subtitle format
 	INPUT_SUB=`$MEDIAINFO --Inform="Text;%Format%\n" "$FILENAME" 2> /dev/null | head -n1`
-	if is_supported_sub "$INPUT_SUB"; then
+	if [ ! -z "$KEEP_SUB" ] || is_supported_sub "$INPUT_SUB"; then
 		OUTPUT_SUB="copy"
 	else
 		OUTPUT_SUB="$DEFAULT_SUB"
@@ -302,6 +302,9 @@ while :; do
 			;;
 		--stereo)
 			STEREO=1
+			;;
+		--copy-subs)
+			KEEP_SUB=1
 			;;
 		--config=?*)
 			CONFIG_DIRECTORY=${1#*=}
